@@ -1,0 +1,899 @@
+<html>
+<head>
+<title>Editor</title>
+
+
+<!---------------sssss-ddddd
+        Header set Access-Control-Allow-Origin "http://192.168.194.138"
+	        Header set Access-Control-Allow-Credentials true
+		  
+----------------------->
+
+<script src="lib/jquery-1.7.min.js"></script>
+<script src="utils.js"></script>
+
+<link rel=stylesheet href="codemirror/doc/docs.css">
+
+<link rel="stylesheet" href="codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="codemirror/addon/dialog/dialog.css">
+<link rel="stylesheet" href="codemirror/addon/hint/show-hint.css">
+
+</head>
+
+<body onkeydown="return keyHandler(event);">
+
+
+<script src="codemirror/lib/codemirror.js"></script>
+<script src="codemirror/addon/edit/matchbrackets.js"></script>
+<script src="codemirror/addon/comment/comment.js"></script>
+<script src="codemirror/addon/dialog/dialog.js"></script>
+<script src="codemirror/addon/search/searchcursor.js"></script>
+<script src="codemirror/addon/search/search.js"></script>
+<script src="codemirror/addon/mode/loadmode.js"></script>
+
+<script src="codemirror/addon/hint/show-hint.js"></script>
+<script src="cmcs.js"></script>
+<script src="dav.js"></script>
+
+<!---------
+<script src="codemirror-3.22/addon/hint/javascript-hint.js"></script>
+-------------->
+
+<script src="codemirror/mode/clike/clike.js"></script>
+<script src="codemirror/mode/css/css.js"></script>
+<script src="codemirror/mode/xml/xml.js"></script>
+<script src="codemirror/mode/javascript/javascript.js"></script>
+<script src="codemirror/mode/htmlmixed/htmlmixed.js"></script>
+
+<style type="text/css">
+      .CodeMirror {border-top: 1px solid #eee; border-bottom: 1px solid #eee;height:90%}
+      
+</style>
+
+<style type="text/css">
+
+.selector {
+    background: yellow;
+}
+
+.markedText {
+    color: "green";
+}
+    
+textarea {
+    height: 1000px
+}
+
+html {
+    overflow: hidden;
+}
+
+div.container {
+    display: none;
+}
+
+h1 {
+    font-size: 14px;
+}
+
+div.dialog {
+    top: 10%;
+    left:10%;
+    width: 80%;
+    height: 80%;
+    border : 1px solid black;
+    padding : 10px;
+    background-color: rgba(255,255,255,0.95);
+    box-shadow: 0px 0px 25px #888800;
+    position:absolute;
+    z-index: 100;
+    display: none;
+    overflow:auto;
+}
+
+div#search_results {
+    // height: 90%;
+}
+  
+div#replace_dialog {
+    left: 50%;
+    top: 0px;
+    // left: 0px;
+    height: 80%;
+}
+
+div.side {
+    top: 10%;
+    left:50%;
+    width: 45%;
+    height: 80%;
+    border : 1px solid black;
+    padding : 10px;
+    background-color: rgba(155,155,155,0.9);
+    position:absolute;
+    z-index: 100;
+    display: none;
+}
+
+div#mask {
+    top: 0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    display:none;
+    // opacity:0.1;
+    background-color: rgba(255,255,255,0.1);
+    z-index: 100000;
+    position: fixed;
+    cursor: move;
+}
+
+.button {
+    border: 2px solid rgb(120,130,255);
+    color: rgb(120,130,255);
+    margin: 4px 2px 2px 2px;
+    padding: 2px 4px;
+    display: inline-table;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.button:hover {
+    border: 2px solid rgb(200,200,130);
+    color: rgb(200,200,130);
+}
+
+.button:active {
+    border: 2px solid rgb(200,200,130);
+    color: rgb(180,180,130);
+}
+
+</style>
+
+<textarea id="code" name="code" height="40">
+</textarea>
+
+
+
+<div id="dialog" class="dialog">
+<h1>Search project:</h1>
+
+<input type="text" size=60 id="search" autocomplete="off" /> 
+
+<div id="search_results">
+</div>
+
+<table>
+<tr><td>
+<div id="search_create">New file</div>
+</td>
+<td>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</td>
+<td>
+<div id="search_saveas">Save current buffer as</div>
+</td></tr>
+</table>
+<input type="button" value="Close" onclick="hideDialog();" />
+</div>
+
+<div id="replace_dialog" class="dialog">
+
+<table>
+<tr>
+<td>
+<h1>Search and replace in current buffer:</h1>
+</td>
+<td>
+<input type="text" size=60 id="replace_search" autocomplete="off" />
+</td></tr>
+<tr>
+<td><h1>Replace:</h1></td>
+<td>
+<input type="text" size=60 id="replace_replace" autocomplete="off" /> 
+</td></tr>
+</table>
+
+<div id="replace_results">
+</div>
+
+<input type="button" value="Close" onclick="hideElem('replace_dialog');" />
+<input class="movebtn" type="button" value="Move" />
+</div>
+
+<div id="run_dialog" class="dialog">
+Arguments:
+<input type="text" id="run_arg1" />
+<input type="text" id="run_arg2" />
+<input type="text" id="run_arg3" />
+<input type="text" id="run_arg4" />
+<br>
+<input type="button" onclick="runProcess();" value="Run" />
+<input type="button" onclick="killProcesses();" value="Kill" />
+<input type="button" value="Close" onclick="hideElem('run_dialog');" />
+<div id="run_output" style="border: 1px solid black; overflow:auto; height:80%; width:100%"></div>
+</div>
+
+<a class="button" id="save_button" onclick="saveFile();">Save</a>
+<a class="button" onclick="showDialog();">Search</a>
+<a class="button" onclick="showElem('replace_dialog');">Replace</a>
+
+<!---
+<input type="button" id="save_button" onclick="saveFile();" value="Save" disabled />
+<input type="button" onclick="showElem('replace_dialog');" value="Search" />
+<input type="button" onclick="showDialog();" value="Open" />
+---->
+
+<div class="container" id="js_buttons">
+<a class="button" onclick="evalFile();">Add module</a>
+<!---
+<a onclick="showStatus();">Info</a>
+<a onclick="dynLoad();">Evaluate</a>
+<a onclick="runWorker();">Run worker</a>
+<a onclick="showCode();">Code browser</a>
+<a onclick="addAsModule();">Server module</a>
+--->
+</div>
+
+<div class="container" id="test_buttons">
+</div>
+
+<div class="container" id="html_buttons">
+<a class="button" href="index.html" id="html_link" rel="noreferrer" target="_blank">HTML Link</a>
+</div>
+
+<a class="button" href="editor.html" target="_blank">New editor</a>
+
+<input type="checkbox" id="enable_completion" checked onchange="completion.enabled = enable_completion.checked" /><label for="enable_completion">Enable completion</label>
+
+
+    
+<script>
+
+function setupReplace() {
+
+var htmlEntities = util.htmlEntities;
+var Selector = util.Selector;
+
+function setLine(num,str) {
+    var ln = parent.doc.getLine(num);
+    parent.doc.doc.removeInLine(num, 0, ln.length);
+    parent.doc.doc.insertInLine({column:0,row:num}, str);
+}
+
+var last = "";
+
+var elem = document.getElementById("replace_search");
+var replace = document.getElementById("replace_replace");
+var results = document.getElementById("replace_results");
+
+var dialog = parent.filter ? true : false;
+
+var result_list = [];
+
+if (parent.dialog_focus) parent.dialog_focus["replace_dialog"] = elem;
+
+function selectFile(i) {
+    var el = result_list[i];
+    parent.editor.setCursor(el.line);
+    document.getElementById("replace_replace").focus();
+    // parent.editor.scrollToLine(el.line-5);
+}
+
+function searchString(term, rep) {
+    term = util.validRegex(term, "g");
+    if (!term || !parent.current_file) return [];
+    var fn = parent.current_file.path.substr(1);
+    var str = parent.editor.getValue();
+    var res = [];
+    // if (str.match(term)) res.push({filename:fn, type:"matches", rank:0});
+    var lst = str.split("\n");
+    for (var i = 0; i < lst.length; i++) {
+        var el = lst[i];
+        if (el.match(term)) { //el.match palauttaa listan matcheista
+            var obj = { filename:fn, type:"line", line:i+1, data:el, rank: 2, replace:el.replace(term, rep) };
+            if (el.match(/function/)) obj.rank++;
+            obj.rank += 1 / el.length;
+            // = '<td><a onclick="selectFile(' + i + ');">' + obj.filename + "</a></td>";
+            res.push(obj); 
+        }
+    }
+    res.sort(function (a,b) {return b.rank-a.rank;});
+    return res;
+}
+
+var sel = new Selector();
+
+function keyHandler(ev) {
+    // console.log(ev);
+    if (ev.ctrlKey && ev.keyIdentifier == "U+0046") {
+        if (parent.hideDialog) parent.hideElem("replace_dialog");
+        return false;
+    }
+    else {
+        return sel.handleKey(ev);
+    }
+}
+
+document.getElementById("replace_dialog").onkeydown = keyHandler;
+
+function selectLine(i) {
+    // console.log("Sel");
+    var obj = result_list[i];
+    var tmp = obj.replace;
+    obj.replace = obj.data;
+    obj.data = tmp;
+    setLine(obj.line-1, obj.data);
+    var el = document.getElementById("file"+i);
+    el.innerHTML = printElem(obj);
+}
+
+function printElem(obj) {
+    var info = "<td>" + obj.line + "</td><td> " + htmlEntities(obj.data) + "</td>";
+    info += "<td>" + htmlEntities(obj.replace) + "</td>";
+    return info;
+}
+
+function blurBoth(i) {
+        elem.blur();
+        replace.blur();
+        selectFile(i);
+        results.scrollTop = document.getElementById("file"+(i > 3 ? i - 3 : 0)).offsetTop;
+}
+
+function select(i) {
+    blurBoth(i);
+    sel.setCurrent(0, i+2);
+}
+
+function showResults(lst) {
+    result_list = lst;
+    var str = "";
+    sel.clear();
+    sel.add(0,0, "search", function () {}, function () { elem.focus(); });
+    sel.add(0,1, "replace", function () {}, function () { replace.focus(); });
+    lst.forEach(function (obj,i) {
+        if (i > 20) return;
+        str += '<tr onclick="select(' + i + ');" id="file' + i + '">' + printElem(obj) + "</tr>";
+        sel.add(0, i+2, "file"+i, function () { selectLine(i); }, function () { blurBoth(i); });
+    });
+    results.innerHTML = '<table class="results">' + str + "</table>";
+    sel.resetCurrent();
+}
+
+function doSearch() {
+    if (elem.value != "") showResults(searchString(elem.value, replace.value));
+    else showResults([]);
+}
+
+elem.onkeyup = doSearch;
+replace.onkeyup = doSearch;
+
+showResults([]);    
+}
+
+// var service = util.sharedHandler("local-complete.js");
+var service = worker;
+
+function setupSearch() {
+var htmlEntities = util.htmlEntities;
+var Selector = util.Selector;
+
+function searchString(term) {
+    term = util.validRegex(term);
+    if (!term || !parent.current_file) return [];
+    var fn = parent.current_file.path.substr(1);
+    var str = parent.editor.getValue();
+    var res = [];
+    // if (str.match(term)) res.push({filename:fn, type:"matches", rank:0});
+    var lst = str.split("\n");
+    for (var i = 0; i < lst.length; i++) {
+        var el = lst[i];
+        if (el.match(term)) {
+            var obj = { filename:fn, type:"line", line:i+1, data:el, rank: 2};
+            if (el.match(/function/)) obj.rank++;
+            obj.rank += 1 / el.length;
+            res.push(obj); 
+        }
+    }
+    res.sort(function (a,b) {return b.rank-a.rank;});
+    return res;
+}
+
+var sel = new Selector();
+
+function keyHandler(ev) {
+    if (ev.keyIdentifier == "U+001B" || (ev.ctrlKey && ev.keyIdentifier == "U+004F")) {
+        hideDialog();
+        return false;
+    }
+    else sel.handleKey(ev); 
+    // sel.handleKey(ev);
+}
+
+document.getElementById("dialog").onkeydown = keyHandler;
+
+var last = "";
+
+var elem = document.getElementById("search");
+var results = document.getElementById("search_results");
+var create = document.getElementById("search_create");
+var saveas = document.getElementById("search_saveas");
+
+var dialog = parent.filter ? true : false;
+
+var result_list = [];
+
+function selectFile(i) {
+    var el = result_list[i];
+    parent.editFile(el.filename, el.line || 0);
+}
+
+function showResults(obj) {
+    if (elem.value != obj.searchString) return;
+    var lst = result_list.concat(obj.lst);
+    result_list = lst;
+    var str = "";
+    sel.clear();
+    var LEN = 100;
+    sel.add(0,0, "search", function () {});
+    sel.add(0,lst.length>LEN?LEN+2:lst.length+1, "search_create", function () { parent.createFileByName(elem.value); });
+    sel.add(1,lst.length>LEN?LEN+2:lst.length+1, "search_saveas", function () { parent.saveFileAsName(elem.value); });
+    lst.forEach(function (obj,i) {
+        if (i > LEN) return;
+        var el = "";
+        var url = "editor.html#/" + obj.filename + (obj.line ? ":" + obj.line : "");
+        if (obj.data && obj.data.length > 100){
+            obj.hdata = htmlEntities(obj.data.substr(0,100)) + '<b class="ellipsis">...</b>';
+        }
+        else obj.hdata = htmlEntities(obj.data);
+        var info = "<td></td><td></td>";
+        if (obj.line) info = "<td>" + obj.line + "</td><td>" + obj.hdata + "</td>";
+        else if(obj.type == "name")
+            info = '<td></td><td><a href ="' + obj.filename + '"target="_blank"> HTML </a></td>';
+        if (dialog) el = '<td><a onclick="selectFile(' + i + ');">' + obj.filename + "</a></td>";
+        else el = '<td><a href="' + url + '">' + obj.filename + "</a></td>";
+        str += '<tr id="file' + i + '">' + el + info + "</tr>";
+        sel.add(0, i+1, "file"+i, function () {
+            if (!dialog) {
+                document.location = url;
+            }
+            else selectFile(i);
+        },
+        function () {results.scrollTop = document.getElementById("file"+(i > 3 ? i - 3 : 0)).offsetTop;});
+    });
+    results.innerHTML = '<table class="results">' + str + "</table>";
+    sel.resetCurrent();
+}
+
+function doSearch() {
+    if (elem.value != "" && elem.value != last) {
+        create.innerHTML = "New file " + elem.value;
+        saveas.innerHTML = "Save buffer as " + elem.value;
+        service.emit("searchNames", elem.value, function (lst) {
+                result_list = [];
+                var lst2 = lst.concat(searchString(elem.value));
+                showResults({searchString: elem.value, lst:lst2});
+                var str = elem.value;
+                service.emit("search", str, function (lst) {
+                    showResults({searchString: str, lst:lst});
+                });
+                // call("search", {searchString:elem.value, file:(parent&&parent.current_file)?parent.current_file.path:null}, showResults);
+        });
+        last = elem.value;
+    }
+}
+
+elem.onkeyup = doSearch;
+
+doSearch();
+
+if (dialog) {
+    parent.$focusDialog = function (str) {
+        elem.focus();
+        if (str) {
+            elem.value = str;
+            doSearch();
+        }
+        else elem.select();
+    }
+}
+}
+
+var editor = CodeMirror.fromTextArea(document.getElementById("code"), { lineNumbers: true, extraKeys: {"Tab": "smartcomplete"}, indentUnit:4 });
+
+// console.log = alert;
+
+function showCode() {
+    $("#eval").show();
+    setCode(doc.getValue());
+}
+
+// $("#enable_completion").button();
+// $(":button, a, :checkbox").button();
+// $("#save_button").button("option", "disabled", true);
+
+var enable_completion = document.getElementById("enable_completion");
+
+// var store = require("store-local");
+var Selector = util.Selector;
+
+var dialog = document.getElementById("dialog");
+
+function keyHandler(ev) {
+    // console.log("Got key");
+    if (ev.ctrlKey && ev.keyIdentifier == "U+0054") {
+        return false;
+    }
+	// if (dialog.style.display != "none") sel.handleKey(ev);
+}
+
+var sel = new Selector();
+
+var directory = null;
+
+var current_file = null;
+
+// var file_line = 0;
+
+
+///// Processes //////
+
+var run_output = document.getElementById("run_output");
+
+
+function onEnter(ev, f) {
+	// console.log("here");
+	if (ev.keyIdentifier == "Enter") f();
+}
+
+$(".movebtn").mousedown(function (ev) { this.prev = {x:ev.clientX, y:ev.clientY}; })
+    .mouseup(function () { this.prev = null; })
+    .mousemove(function (ev) {
+        var p = $(this).parent();
+        if (this.prev) {
+            var obj = {x:ev.clientX, y:ev.clientY};
+            var dx = obj.x - this.prev.x;
+            var dy = obj.y - this.prev.y;
+            var pos = p.offset();
+            p.offset({top: pos.top + dy, left: pos.left + dx});
+            this.prev = obj;
+        }
+    });
+
+var filter = /(~$|^\.)/;
+
+function saveFileAs() {
+    document.getElementById("saveas_dialog").style.display = "none";
+    var fname = document.getElementById("save_as_file").value;
+    if (fname.length > 0) {
+        directory.setFile(fname, doc.getValue(), function (msg) { editFile("/" + fname); });
+    }
+}
+
+function saveFileAsName(fname) {
+    if (fname.length > 0) {
+        directory.setFile(fname, doc.getValue(), function (msg) { editFile("/" + fname); });
+    }
+}
+
+function hideElem(str) {
+    document.getElementById(str).style.display = "none";
+    editor.focus();
+}
+
+function showStatus() {
+    controlHash("#" + current_file.path);
+    showElem('control_dialog');
+}
+
+var dialog_focus = {};
+
+function showElem(str) {
+    document.getElementById(str).style.display = "inline";
+    if (dialog_focus[str]) dialog_focus[str].focus();
+}
+
+function showFileAs() {
+    document.getElementById("saveas_dialog").style.display = "block";
+    document.getElementById("save_as_file").focus();
+}
+
+function listDirectory(dir) {
+	sel.clear();
+    sel.add(0, 0, "create_section", function () {
+			document.getElementById("new_file_name").focus();
+	});
+    sel.add(1, 0, "create_section", function () {
+			document.getElementById("new_file_name").focus();
+	});
+	directory = dir;
+	document.getElementById("dir_name").innerHTML = dir.path;
+    var str = ["",""];
+    var num = 0;
+	dir.list.forEach(function (elem,i) {
+		if (filter.test(elem)) return;
+        str[num%str.length] +=  '<a id="dir' + i + '" onclick="selectFile(' + i + ');">' + elem + "</a><br>";
+		sel.add(num%str.length, Math.floor(num/2)+1,  "dir"+i, function () { selectFile(i); });
+    	num++;
+	});
+    document.getElementById("files_1").innerHTML = str[0];
+    document.getElementById("files_2").innerHTML = str[1];
+}
+
+function selectFile(n) {
+    editFile(directory.list[n]);
+}
+
+function editFile(fn, num) {
+    getFile(fn, function (file) {
+				editorFile({path:fn, text:file}, num);
+				hideDialog();
+	});
+}
+
+function deactivate() {}
+function activate() {}
+
+function hideDialog() {
+	var elem = document.getElementById("dialog");
+	elem.style.display = "none";
+	// sel.clear();
+	activate();
+    setTimeout(function () { editor.focus(); }, 10);
+}
+
+var $focusDialog = null;
+
+function focusDialog(str) {
+    if ($focusDialog) $focusDialog(str);
+    else setTimeout(function () { focusDialog(str); }, 100);
+}
+
+function showDialog(str) {
+    // store.readFile(listDirectory);
+	var elem = document.getElementById("dialog");
+	elem.style.display = "block";
+    elem.focus();
+    //console.log(document.activeElement);
+	deactivate();
+    str = typeof str == "string" ? str : undefined;
+    //setTimeout(function () { elem.focus(); focusDialog(str); }, 100);
+    focusDialog(str);
+}
+
+function createFile() {
+    hideDialog();
+	var name = document.getElementById("new_file_name").value;
+	if (name.length == 0) return;
+	directory.setFile(name, "", function () {
+        directory.getFile(name, editorFile);
+	});
+}
+
+function createFileByName(name) {
+    hideDialog();
+	if (name.length == 0) return;
+	directory.setFile(name, "", function () {
+        directory.getFile(name, editorFile);
+	});
+}
+
+function createDir() {
+	var name = document.getElementById("new_file_name").value;
+	if (name.length == 0) return;
+	directory.newDirectory(name, function () {
+        directory.getFile(name, listDirectory);
+	});
+}
+
+function setSaved(b) {
+    // $("#save_button").button("option", "disabled", b);
+}
+
+function dirOfFile(fn) {
+    return fn.split("/").slice(0,-1).join("/");
+}
+
+function editorFile(file, num) {
+	current_file = file;
+	var stat = document.getElementById("status");
+    // stat.innerHTML = "Editing <tt>" + file.path + "</tt>";
+    prev_hash = file.path;
+    if (hashFile() != file.path) {
+        document.location.hash = "#" + file.path;
+    }
+    document.title = file.path.match(/[^\/]*$/)[0];
+    if (file.path.match(/\.test\.js$/)) {
+        editor.setOption("mode", "javascript");
+        showElem("test_buttons");
+        hideElem("html_buttons");
+        hideElem("js_buttons");
+	}
+    else if (file.path.match(/\.js$/)) {
+        editor.setOption("mode", "javascript");
+        showElem("js_buttons");
+        hideElem("html_buttons");
+        hideElem("test_buttons");
+        var loc = document.location;
+	}
+    else if (file.path.match(/\.html$/)) {
+        hideElem("js_buttons");
+        showElem("html_buttons");
+        hideElem("test_buttons");
+        document.getElementById("html_link").href = document.location.origin + file.path;
+        editor.setOption("mode", "htmlmixed");
+	}
+    else if (file.path.match(/\.cc$/)) {
+        hideElem("js_buttons");
+        hideElem("html_buttons");
+        hideElem("test_buttons");
+        editor.setOption("mode", "clike");
+	}
+	else {
+        hideElem("js_buttons");
+        hideElem("html_buttons");
+        editor.setOption("mode", null);
+	}
+	editor.setValue(file.text);
+	setSaved(true);
+	editor.focus();
+    // service.emit("load", {dir:dirOfFile(file.path)});
+    service.emit("loaded", {filename:file.path, file:file.text});
+    if (num) editor.setCursor(num-1);
+    // else editor.gotoLine(file_line);
+}
+
+function saveFile() {
+    // completion.update(current_file.path, editor.getValue());
+    service.emit("save", {filename:current_file.path, file:editor.getValue()});
+    putFile(current_file.path, editor.getValue(), function (msg) { setSaved(true); });
+}
+
+editor.on("change", function () {
+    	// console.log("Change");
+    setSaved(false);
+});
+
+editor.options.extraKeys["Ctrl-S"] = saveFile;
+editor.options.extraKeys["Ctrl-F"] = function() { showElem("replace_dialog"); }
+editor.options.extraKeys["Ctrl-E"] = function() { window.open("cm_editor.html", "_blank"); }
+editor.options.extraKeys["Esc"] = showDialog;
+
+function clearGuess() {
+    if (editor.guessSelection) {
+        editor.guessSelection = false;
+        editor.replaceSelection("");
+    }
+}
+
+editor.options.extraKeys["Left"] = function() {
+    clearGuess();
+    editor.execCommand("goCharLeft"); 
+}
+
+editor.options.extraKeys["Right"] = function() {
+    clearGuess();
+    editor.execCommand("goCharRight"); 
+}
+
+editor.options.extraKeys["Up"] = function() {
+    clearGuess();
+    editor.execCommand("goLineUp"); 
+}
+
+editor.options.extraKeys["Ctrl-Z"] = function() {
+    if (editor.guessSelection) {
+        editor.guessSelection = false;
+        editor.execCommand("undo"); 
+    }
+    editor.execCommand("undo"); 
+}
+
+editor.options.extraKeys["Down"] = function() {
+    clearGuess();
+    editor.execCommand("goLineDown"); 
+}
+
+/*
+function onResize() {
+        var width = ($(window).width());
+        var height = ($(window).height()-40);
+        container.style.width = width + "px";
+        container.style.height = height + "px";
+    };
+
+window.onresize = onResize;
+onResize();
+*/
+
+// completion.setEditor(editor);
+
+function dynLoad() {
+	var str = doc.getValue();
+  var elem = document.createElement("script");
+  // Set it's 'type' attribute	
+  elem.setAttribute("type", "text/javascript");
+  // Set it's 'language' attribute
+  elem.setAttribute("language", "JavaScript");
+  // Set it's 'src' attribute
+  elem.innerHTML = str;
+  // elem.setAttribute("src", "myjsfile.js");
+  // Now add this new element to the head tag
+  document.getElementsByTagName("head")[0].appendChild(elem);
+  console.log("Added file to javascript environment");
+}
+
+function evalFile() {
+	var filename = current_file.path;
+	var id = filename.substring(0, filename.length-3);
+	var str = doc.getValue() + "\n//@ sourceURL=" + filename;
+	eval('define("' + id +  '", ["require","exports","module"], function (require, exports, module) { ' + str + '\n });');
+	window.last = require(id);
+	console.log("Added file as module to variable 'last'");
+}
+
+function runWorker() {
+	var str = doc.getValue();
+	var bb = new window.WebKitBlobBuilder();
+	bb.append(str);
+	window.worker = new Worker(window.webkitURL.createObjectURL(bb.getBlob()));
+	console.log("Added file as worker to variable 'worker'");
+}
+
+var prev_hash = ":::";
+
+function hashFile() {
+    var str = document.location.hash || "";
+    var lst = str.split(":");
+    var res = lst[0].length > 0 ? lst[0].substring(1) : "";
+    // console.log("Hash: " + res);
+    return res;
+}
+
+function updateHash(){
+    if (hashFile() == prev_hash) return;
+    // console.log("Checking hash");
+    if (document.location.hash) {
+            var lst = document.location.hash.split(":");
+            var num = 0;
+            if (lst.length > 1) num = parseInt(lst[1]) || 0;
+            var fn = lst[0].substring(1);
+            getFile(fn, function (str) {
+                var f = {type:"???", text:str, path:fn};
+                if (f.type != "error") {
+                    hideDialog();
+                    editorFile(f, num);
+                }
+                else showDialog(fn.substring(1));
+            });
+    }
+    else showDialog();   
+}
+
+updateHash();
+
+window.onhashchange = updateHash;
+
+setupSearch();
+setupReplace();
+
+// call("session_info", {}, function (a) { if (a.length > 0) $("#login_button").button("option","label", "Logged in as " + a); });
+
+var activity = function () {
+    CodeMirror.serviceHint(editor); 
+}
+
+editor.on("cursorActivity", activity);
+    editor.on("mousedown", function () {
+        console.log("Here");
+        if (editor.guessSelection) {
+            editor.guessSelection = false;
+            editor.replaceSelection("");
+        }
+    });
+
+</script>
+
+</body>
+</html>

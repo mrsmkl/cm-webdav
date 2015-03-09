@@ -1,0 +1,70 @@
+<!doctype html>
+
+<title>Webdav test</title>
+
+<script>
+    function getFile(fname, cont) {
+        var ajax = new XMLHttpRequest();
+        ajax.open("GET", fname, true);
+        ajax.withCredentials = true;
+        ajax.onreadystatechange = function (x) {
+            if (x.srcElement.responseText) cont(x.srcElement.responseText, x);
+        };
+        ajax.send();
+    }
+
+    function makeDir(fname, cont) {
+        var ajax = new XMLHttpRequest();
+        ajax.open("MKCOL", fname, true);
+        ajax.withCredentials = true;
+        ajax.onreadystatechange = function (x) {
+            console.log(x);
+            // if (x.srcElement.responseText) cont(x.srcElement.responseText, x);
+        };
+        ajax.send();
+    }
+    
+    function putFile(fname, str, cont) {
+        var ajax = new XMLHttpRequest();
+        ajax.open("PUT", fname, true);
+        ajax.withCredentials = true;
+        ajax.onreadystatechange = function (x) {
+            console.log(x);
+            // if (x.srcElement.responseText) cont(x.srcElement.responseText, x);
+        };
+        ajax.send(str);
+    }
+    function postFile(fname, str, cont) {
+        var ajax = new XMLHttpRequest();
+        ajax.open("POST", fname, true);
+        ajax.withCredentials = true;
+        ajax.onreadystatechange = function (x) {
+            console.log(x);
+            // if (x.srcElement.responseText) cont(x.srcElement.responseText, x);
+        };
+        ajax.send(str);
+    }
+    var prop_command = '<?xml version="1.0" encoding="utf-8" ?>\n<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>';
+    function listDir(fname, cont) {
+        var ajax = new XMLHttpRequest();
+        ajax.open("PROPFIND", fname, true);
+        ajax.setRequestHeader("Depth", "1");
+        ajax.withCredentials = true;
+        ajax.onreadystatechange = function (x) {
+            if (x.srcElement.responseXML) {
+                var doc = x.srcElement.responseXML;
+                var lst = doc.querySelectorAll("href");
+                var res = [];
+                for (var i = 0; i < lst.length; i++) {
+                    res.push(lst[i].textContent);
+                }
+                cont(res, x);
+            }
+        };
+        ajax.send();
+    }
+    
+</script>
+
+
+

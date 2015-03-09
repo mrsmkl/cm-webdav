@@ -1,0 +1,34 @@
+<!doctype html>
+
+<script src="sax.js"></script>
+<script src="dav.js"></script>
+
+
+<script>
+
+function parseText(txt) {
+    var parser = sax.parser(true, {lowercase:true});
+    var dom = undefined;
+    var activeNode = dom;
+    var lst = [];
+    parser.onerror = function (e) { };
+    parser.onend = function () {};
+    parser.ontext = function (t) {
+        if (activeNode != undefined && activeNode.name == "D:href")
+            lst.push(t);
+    };
+    parser.onopentag = function (node) {
+        var nd = {name:node.name, parent:activeNode};
+        activeNode = nd;
+    };
+    parser.onclosetag = function (node) {
+        activeNode = activeNode.parent;
+    };
+    parser.write(txt).close();
+    return lst;
+}
+
+</script>
+
+
+
