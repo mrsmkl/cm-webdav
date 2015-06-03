@@ -5,6 +5,7 @@ exports.files = [];
 exports.all_files = [];
 
 var good_file = /\.(cc|js|css|html)$/;
+var bad_file = /.*\.git.*/;
 
 function readFile(fname, cont) {
     var ajax = new XMLHttpRequest();
@@ -39,11 +40,11 @@ exports.load = function (fn, cont, progress) {
 exports.loadDir = function (fn, cont, progress) {
     listAllFiles(fn, function (lst) {
         var n = 0;
-        exports.all_files = lst;
         exports.files = [];
         lst.forEach(function (el) {
-            if (el.match(good_file)) exports.files.push(el);
+            if (el.match(good_file) && !el.match(bad_file)) exports.files.push(el);
         });
+        exports.all_files = lst.filter(function (fn) { return !fn.match(bad_file); });
         exports.files.forEach(function (el) {
             readFile(el, function (err, str) {
                 n++;

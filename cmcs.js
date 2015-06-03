@@ -19,7 +19,7 @@ function getHint(cm, cb) {
     var token = line.substr(0, cur.ch);
   // console.log("Completing: " + token);
     var ws = token.match(/^[ ]*/).join("").length;
-    worker.emit("complete", token, function (lst) {
+    if (token.length - ws > 0) worker.emit("complete", token, function (lst) {
         if (lst && lst.length > 0 && lst[0]) {
             /*
             if (marked) {

@@ -2,13 +2,6 @@
 <head>
 <title>Editor</title>
 
-
-<!---------------sssss-ddddd
-        Header set Access-Control-Allow-Origin "http://192.168.194.138"
-	        Header set Access-Control-Allow-Credentials true
-		  
------------------------>
-
 <script src="lib/jquery-1.7.min.js"></script>
 <script src="utils.js"></script>
 
@@ -382,7 +375,7 @@ var Selector = util.Selector;
 function searchString(term) {
     term = util.validRegex(term);
     if (!term || !parent.current_file) return [];
-    var fn = parent.current_file.path.substr(1);
+    var fn = parent.current_file.path;
     var str = parent.editor.getValue();
     var res = [];
     // if (str.match(term)) res.push({filename:fn, type:"matches", rank:0});
@@ -567,13 +560,13 @@ function saveFileAs() {
     document.getElementById("saveas_dialog").style.display = "none";
     var fname = document.getElementById("save_as_file").value;
     if (fname.length > 0) {
-        directory.setFile(fname, doc.getValue(), function (msg) { editFile("/" + fname); });
+        putFile(fname, editor.getValue(), function (msg) { editFile(fname); });
     }
 }
 
 function saveFileAsName(fname) {
     if (fname.length > 0) {
-        directory.setFile(fname, doc.getValue(), function (msg) { editFile("/" + fname); });
+        putFile(fname, editor.getValue(), function (msg) { editFile(fname); });
     }
 }
 
@@ -666,16 +659,16 @@ function createFile() {
     hideDialog();
 	var name = document.getElementById("new_file_name").value;
 	if (name.length == 0) return;
-	directory.setFile(name, "", function () {
-        directory.getFile(name, editorFile);
+	putFile(name, "", function () {
+        getFile(name, editorFile);
 	});
 }
 
 function createFileByName(name) {
     hideDialog();
 	if (name.length == 0) return;
-	directory.setFile(name, "", function () {
-        directory.getFile(name, editorFile);
+	putFile(name, "", function () {
+        editFile(name);
 	});
 }
 
@@ -721,7 +714,7 @@ function editorFile(file, num) {
         hideElem("js_buttons");
         showElem("html_buttons");
         hideElem("test_buttons");
-        document.getElementById("html_link").href = document.location.origin + file.path;
+        document.getElementById("html_link").href = file.path;
         editor.setOption("mode", "htmlmixed");
 	}
     else if (file.path.match(/\.cc$/)) {
@@ -757,7 +750,7 @@ editor.on("change", function () {
 
 editor.options.extraKeys["Ctrl-S"] = saveFile;
 editor.options.extraKeys["Ctrl-F"] = function() { showElem("replace_dialog"); }
-editor.options.extraKeys["Ctrl-E"] = function() { window.open("cm_editor.html", "_blank"); }
+editor.options.extraKeys["Ctrl-E"] = function() { window.open("editor.html", "_blank"); }
 editor.options.extraKeys["Esc"] = showDialog;
 
 function clearGuess() {
@@ -886,7 +879,7 @@ var activity = function () {
 
 editor.on("cursorActivity", activity);
     editor.on("mousedown", function () {
-        console.log("Here");
+        // console.log("Here");
         if (editor.guessSelection) {
             editor.guessSelection = false;
             editor.replaceSelection("");

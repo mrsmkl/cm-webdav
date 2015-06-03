@@ -6,7 +6,7 @@ function getFile(fname, cont) {
     ajax.open("GET", fname, true);
     ajax.withCredentials = true;
     ajax.onreadystatechange = function (x) {
-        if (ajax.readyState == 4 && ajax.responseText) cont(ajax.responseText, x);
+        if (ajax.readyState == 4 && typeof ajax.responseText == "string") cont(ajax.responseText, x);
     };
     ajax.send();
 }

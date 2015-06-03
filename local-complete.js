@@ -67,6 +67,7 @@ function findParents(id) {
 }
 
 function searchFile(fn, str, term, res) {
+    if (!str) return;
     var lst = str.split("\n");
     var parents = findParents(fn);
     for (var i = 0; i < lst.length; i++) {
